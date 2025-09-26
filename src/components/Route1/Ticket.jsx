@@ -90,7 +90,7 @@ export default function TicketEditor() {
   return (
     <div className={styles.container}>
       <div className={styles.card}>
-        <h1 className={styles.title}>Book Bus Ticket - Route 1</h1>
+        <h1 className={styles.title}>Book Bus Ticket </h1>
 
         {/* Row with Bus Number and Bus Route */}
         <div className={styles.rowInputs}>
