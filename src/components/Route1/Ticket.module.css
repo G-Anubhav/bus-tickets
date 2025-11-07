@@ -69,13 +69,12 @@
 }
 
 .formGroup select {
-  width: 120px;
+  width: 100%;
   padding: 10px 14px;
   font-size: 16px;
   font-family: "Source Sans 3", sans-serif;
-  border: 2px solid #ccc;
+  border: 1px solid #ccc;
   border-radius: 8px;
-  background-color: #f8f8f8;
   color: #333;
   appearance: none;
   transition: all 0.2s ease;

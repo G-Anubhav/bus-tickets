@@ -158,15 +158,7 @@ export default function TicketEditor() {
               onChange={(e) => setNumTickets(e.target.value)}
             />
           </div>
-          <div className={styles.formGroup}>
-            <label>Actual Fare (₹ per ticket):</label>
-            <select value={actualFare} onChange={(e) => setActualFare(e.target.value)}>
-              <option value="10">₹10</option>
-              <option value="15">₹15</option>
-              <option value="20">₹20</option>
-              <option value="25">₹25</option>
-            </select>
-          </div>
+          
         </div>
 
         {/* Row with start, end, and color */}
@@ -209,6 +201,16 @@ export default function TicketEditor() {
               <option value="Maya Puri Crossing (Ring Road)" />
               <option value="Mayapuri Depot Crossing" />
             </datalist>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Actual Fare (₹ per ticket):</label>
+            <select value={actualFare} onChange={(e) => setActualFare(e.target.value)}>
+              <option value="10">₹10</option>
+              <option value="15">₹15</option>
+              <option value="20">₹20</option>
+              <option value="25">₹25</option>
+            </select>
           </div>
         </div>
 
