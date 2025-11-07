@@ -7,6 +7,8 @@ export default function TicketEditor() {
   const [busRoute, setBusRoute] = useState("");
   const [bookingDate, setBookingDate] = useState("");
   const [bookingTime, setBookingTime] = useState("");
+  const [numTickets, setNumTickets] = useState("1");
+  const [actualFare, setActualFare] = useState("10");
   const [startStop, setStartStop] = useState("");
   const [endStop, setEndStop] = useState("");
   const [ticketColor, setTicketColor] = useState("blue"); // New state for color
@@ -54,13 +56,29 @@ export default function TicketEditor() {
     const img = imageRef.current;
     if (!img) return;
 
+
+    const fareNum = Number(actualFare);
+    const ticketsNum = Number(numTickets) || 1;
+
+    // Apply discount and addition
+    const discountedFare = fareNum * 0.9; // 10% discount
+    const finalFarePerTicket = discountedFare + 0.25;
+
+    // Calculate total fare
+    const totalOriginalFare = fareNum * ticketsNum; 
+    const totalFare = finalFarePerTicket * ticketsNum;
+
     canvas.width = img.width;
     canvas.height = img.height;
 
     ctx.drawImage(img, 0, 0);
 
+    if (numTickets) {
+      ctx.font = "500 54px 'Arial', sans-serif";
+      ctx.fillText(numTickets, 955, 985);
+    }
+
     ctx.font = "52px 'Source Sans 3', sans-serif";
-    ctx.fillStyle = "black";
 
     if (busNumber) ctx.fillText(busNumber.toUpperCase(), 85, 640);
     if (busRoute) ctx.fillText(busRoute.toUpperCase(), 90, 830);
@@ -68,13 +86,28 @@ export default function TicketEditor() {
     if (bookingTime) ctx.fillText(bookingTime, 385, 990);
     if (startStop) ctx.fillText(`${startStop}`, 90, 1150);
     if (endStop) ctx.fillText(`${endStop}`, 90, 1310);
+
+    ctx.font = "bold 54px 'Arial', sans-serif";
+    ctx.fillText(`${totalOriginalFare.toFixed(1)}`, 880, 825);
+
+    // Draw final fare (with discount and addition)
+    ctx.font = "500 52px 'Arial', sans-serif";
+    if (ticketsNum > 1) {
+      ctx.fillText(
+        `${totalFare.toFixed(2)}`,
+        880,
+        631
+      );
+    } else {
+      ctx.fillText(`${finalFarePerTicket.toFixed(2)}`, 882, 632);
+    }
   };
 
   useEffect(() => {
     setBookingDate(getFormattedDate());
     setBookingTime(getFormattedTime());
     drawCanvas();
-  }, [busNumber, busRoute, startStop, endStop]);
+  }, [busNumber, busRoute, startStop, endStop, numTickets, actualFare]);
 
   const downloadImage = () => {
     setBookingDate(getFormattedDate());
@@ -113,6 +146,26 @@ export default function TicketEditor() {
               placeholder="eg. 448"
               onChange={(e) => setBusRoute(e.target.value)}
             />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Number of Tickets:</label>
+            <input
+              type="number"
+              min="1"
+              value={numTickets}
+              placeholder="e.g. 2"
+              onChange={(e) => setNumTickets(e.target.value)}
+            />
+          </div>
+          <div className={styles.formGroup}>
+            <label>Actual Fare (₹ per ticket):</label>
+            <select value={actualFare} onChange={(e) => setActualFare(e.target.value)}>
+              <option value="10">₹10</option>
+              <option value="15">₹15</option>
+              <option value="20">₹20</option>
+              <option value="25">₹25</option>
+            </select>
           </div>
         </div>
 
