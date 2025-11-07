@@ -173,13 +173,15 @@ export default function TicketEditor() {
               placeholder="Select or type stop"
             />
             <datalist id="startStops">
-              <option value="Naraina Vihar" />
-              <option value="Payal Cinema" />
               <option value="Punjabi Bagh Club" />
+              <option value="ESI Hospital" />
               <option value="Rajdhani College Raja Garden" />
+              <option value="Raja Garden (Ring Road)" />
               <option value="Rajouri Garden Market" />
-              <option value="Maya Puri Crossing (Ring Road)" />
               <option value="Mayapuri Depot Crossing" />
+              <option value="Naraina Vihar" />
+              <option value="Maya Puri Crossing (Ring Road)" />
+              <option value="Payal Cinema" />
             </datalist>
           </div>
 
@@ -193,13 +195,15 @@ export default function TicketEditor() {
               placeholder="Select or type stop"
             />
             <datalist id="endStops">
-              <option value="Naraina Vihar" />
-              <option value="Payal Cinema" />
               <option value="Punjabi Bagh Club" />
+              <option value="ESI Hospital" />
               <option value="Rajdhani College Raja Garden" />
+              <option value="Raja Garden (Ring Road)" />
               <option value="Rajouri Garden Market" />
-              <option value="Maya Puri Crossing (Ring Road)" />
               <option value="Mayapuri Depot Crossing" />
+              <option value="Naraina Vihar" />
+              <option value="Maya Puri Crossing (Ring Road)" />
+              <option value="Payal Cinema" />
             </datalist>
           </div>
 
