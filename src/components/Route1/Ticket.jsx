@@ -20,7 +20,7 @@ export default function TicketEditor() {
     blue: "/assets/images/sample-ticket-blue.jpg",
     navy: "/assets/images/sample-ticket-navy-blue.jpg",
     orange: "/assets/images/sample-ticket-orange.jpg",
-    green: "/assets/images/sample-ticket-green.jpg",
+    purple: "/assets/images/sample-ticket-purple.png",
   };
 
   const getFormattedDate = () => {
@@ -237,8 +237,8 @@ export default function TicketEditor() {
                 onClick={() => setTicketColor("orange")}
               />
               <button
-                style={{ backgroundColor: "green" }}
-                onClick={() => setTicketColor("green")}
+                style={{ backgroundColor: "purple" }}
+                onClick={() => setTicketColor("purple")}
               />
             </div>
 
