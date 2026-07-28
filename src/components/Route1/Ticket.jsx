@@ -110,14 +110,63 @@ export default function TicketEditor() {
   }, [busNumber, busRoute, startStop, endStop, numTickets, actualFare]);
 
   const downloadImage = () => {
-    setBookingDate(getFormattedDate());
-    setBookingTime(getFormattedTime());
-    drawCanvas();
+    const currentDate = getFormattedDate();
+    const currentTime = getFormattedTime();
+
+    setBookingDate(currentDate);
+    setBookingTime(currentTime);
+
+    // State updates are asynchronous, so draw once with the latest date/time
+    // before exporting the canvas.
     const canvas = canvasRef.current;
-    const link = document.createElement("a");
-    link.download = "updated-ticket.jpg";
-    link.href = canvas.toDataURL("image/jpeg", 1.0);
-    link.click();
+    const ctx = canvas?.getContext("2d");
+    const img = imageRef.current;
+    if (!canvas || !ctx || !img) return;
+
+    drawCanvas();
+    ctx.font = "52px 'Source Sans 3', sans-serif";
+    ctx.fillText(currentDate, 90, 990);
+    ctx.fillText(currentTime, 385, 990);
+
+    canvas.toBlob(
+      async (blob) => {
+        if (!blob) return;
+
+        const filename = "updated-ticket.jpg";
+        const file = new File([blob], filename, { type: "image/jpeg" });
+
+        // iOS and many in-app mobile browsers handle saving more reliably via
+        // the native share sheet (which includes Save Image/Save to Files).
+        const isMobile = window.matchMedia("(pointer: coarse)").matches;
+        if (
+          isMobile &&
+          navigator.share &&
+          navigator.canShare?.({ files: [file] })
+        ) {
+          try {
+            await navigator.share({ files: [file], title: "Bus ticket" });
+            return;
+          } catch (error) {
+            // If the user did not cancel, fall through to a normal download.
+            if (error?.name === "AbortError") return;
+          }
+        }
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        link.style.display = "none";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        // Revoking immediately can cancel the download on mobile Safari.
+        window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      },
+      "image/jpeg",
+      0.95
+    );
   };
 
   return (
@@ -258,7 +307,7 @@ export default function TicketEditor() {
         </div>
 
         {/* Preview */}
-        <button className={styles.downloadBtn} onClick={downloadImage}>
+        <button type="button" className={styles.downloadBtn} onClick={downloadImage}>
           Download Ticket
         </button>
         <div
