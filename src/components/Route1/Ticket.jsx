@@ -129,29 +129,10 @@ export default function TicketEditor() {
     ctx.fillText(currentTime, 385, 990);
 
     canvas.toBlob(
-      async (blob) => {
+      (blob) => {
         if (!blob) return;
 
         const filename = "updated-ticket.jpg";
-        const file = new File([blob], filename, { type: "image/jpeg" });
-
-        // iOS and many in-app mobile browsers handle saving more reliably via
-        // the native share sheet (which includes Save Image/Save to Files).
-        const isMobile = window.matchMedia("(pointer: coarse)").matches;
-        if (
-          isMobile &&
-          navigator.share &&
-          navigator.canShare?.({ files: [file] })
-        ) {
-          try {
-            await navigator.share({ files: [file], title: "Bus ticket" });
-            return;
-          } catch (error) {
-            // If the user did not cancel, fall through to a normal download.
-            if (error?.name === "AbortError") return;
-          }
-        }
-
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
