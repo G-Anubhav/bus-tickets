@@ -224,21 +224,6 @@ export default function TicketEditor() {
 </html>`;
   };
   const saveClickableTicket = async (html, filename) => {
-    const file = new File([html], filename, { type: "text/html" });
-
-    if (navigator.canShare?.({ files: [file] })) {
-      try {
-        await navigator.share({
-          files: [file],
-          title: "Clickable Bus Ticket",
-          text: "Save or share your clickable bus ticket.",
-        });
-        return;
-      } catch (error) {
-        if (error?.name === "AbortError") return;
-      }
-    }
-
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
