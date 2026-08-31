@@ -14,7 +14,6 @@ export default function TicketEditor() {
   const [endStop, setEndStop] = useState("");
   const [ticketColor, setTicketColor] = useState("blue"); // New state for color
   const [showPreview, setShowPreview] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const canvasRef = useRef(null);
   const imageRef = useRef(null);
   const ticketIdRef = useRef(
@@ -74,24 +73,40 @@ export default function TicketEditor() {
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <title>${escapeHtml(title)}</title>
   <style>
     * { box-sizing: border-box; }
+    html,
     body {
       margin: 0;
-      min-height: 100vh;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      position: fixed;
+      inset: 0;
       background: #1fb9b8;
       font-family: Arial, sans-serif;
+      overscroll-behavior: none;
+      touch-action: manipulation;
     }
     .screen {
-      min-height: 100vh;
-      min-height: 100svh;
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
       display: flex;
       flex-direction: column;
       background: #1fb9b8;
+      overflow: hidden;
     }
-    .screen[hidden] {
+    .qr-screen {
+      display: none;
+    }
+    .qr-screen:target {
+      display: flex;
+    }
+    .qr-screen:target + .ticket-screen {
       display: none;
     }
     .topbar {
@@ -100,7 +115,7 @@ export default function TicketEditor() {
       grid-template-columns: 44px 1fr auto;
       align-items: center;
       gap: 12px;
-      padding: 0 16px;
+      padding: max(0px, env(safe-area-inset-top)) 16px 0;
       color: #f0f0f0;
       font-size: 17px;
       font-weight: 500;
@@ -113,9 +128,12 @@ export default function TicketEditor() {
       font-size: 36px;
       font-weight: 500;
       line-height: 1;
+      text-decoration: none;
       cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
-    .issue { 
+    .issue {
       justify-self: center;
     }
     .all-tickets {
@@ -123,19 +141,22 @@ export default function TicketEditor() {
     }
     .ticket-wrap {
       flex: 1;
+      min-height: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 18px 0 42px;
+      padding: 0;
     }
     .ticket {
       position: relative;
-      width: min(100vw, 540px);
+      width: min(100vw, calc(100vh * 1080 / 2165));
+      height: min(100vh, calc(100vw * 2165 / 1080));
     }
     .ticket img {
       display: block;
       width: 100%;
-      height: auto;
+      height: 100%;
+      object-fit: contain;
     }
     .qr-trigger {
       position: absolute;
@@ -151,10 +172,11 @@ export default function TicketEditor() {
     }
     .qr-wrap {
       flex: 1;
+      min-height: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 0 24px 150px;
+      padding: 0 24px 120px;
     }
     .qr-card {
       width: min(86vw, 420px);
@@ -171,19 +193,10 @@ export default function TicketEditor() {
   </style>
 </head>
 <body>
-  <section class="screen ticket-screen">
-    <div class="ticket-wrap">
-      <main class="ticket">
-        <img src="${ticketImage}" alt="Generated bus ticket" />
-        <button class="qr-trigger" type="button" aria-label="Show QR code"></button>
-      </main>
-    </div>
-  </section>
-
-  <section class="screen qr-screen" hidden>
+  <section class="screen qr-screen" id="qr">
     <header class="topbar">
-      <button class="close-icon back" type="button" aria-label="Back">×</button>
-      <div class="issue">⚠️ Issue with ticket?</div>
+      <a class="close-icon back" href="#ticket" aria-label="Back">&times;</a>
+      <div class="issue">&#9888;&#65039; Issue with ticket?</div>
       <div class="all-tickets">View all tickets</div>
     </header>
     <main class="qr-wrap">
@@ -193,24 +206,23 @@ export default function TicketEditor() {
     </main>
   </section>
 
+  <section class="screen ticket-screen" id="ticket">
+    <div class="ticket-wrap">
+      <main class="ticket">
+        <img src="${ticketImage}" alt="Generated bus ticket" />
+        <a class="qr-trigger" href="#qr" aria-label="Show QR code"></a>
+      </main>
+    </div>
+  </section>
+
   <script>
-    const ticketScreen = document.querySelector(".ticket-screen");
-    const qrScreen = document.querySelector(".qr-screen");
-    document.querySelector(".back").innerHTML = "&times;";
-    document.querySelector(".issue").innerHTML = "&#9888;&#65039; Issue with ticket?";
-    document.querySelector(".qr-trigger").addEventListener("click", () => {
-      ticketScreen.hidden = true;
-      qrScreen.hidden = false;
-    });
-    document.querySelector(".back").addEventListener("click", () => {
-      qrScreen.hidden = true;
-      ticketScreen.hidden = false;
-    });
+    document.addEventListener("touchmove", function (event) {
+      event.preventDefault();
+    }, { passive: false });
   </script>
 </body>
 </html>`;
   };
-
   const saveClickableTicket = async (html, filename) => {
     const file = new File([html], filename, { type: "text/html" });
 
@@ -218,7 +230,7 @@ export default function TicketEditor() {
       try {
         await navigator.share({
           files: [file],
-          title: "Clickable Bus Tickett",
+          title: "Clickable Bus Ticket",
           text: "Save or share your clickable bus ticket.",
         });
         return;
@@ -310,54 +322,46 @@ export default function TicketEditor() {
   }, [busNumber, busRoute, startStop, endStop, numTickets, actualFare]);
 
   const downloadImage = async () => {
-    if (isSaving) return;
-    setIsSaving(true);
-
     const currentDate = getFormattedDate();
     const currentTime = getFormattedTime();
 
-    try {
-      setBookingDate(currentDate);
-      setBookingTime(currentTime);
+    setBookingDate(currentDate);
+    setBookingTime(currentTime);
 
-      // State updates are asynchronous, so draw once with the latest date/time
-      // before exporting the canvas.
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext("2d");
-      const img = imageRef.current;
-      if (!canvas || !ctx || !img) return;
+    // State updates are asynchronous, so draw once with the latest date/time
+    // before exporting the canvas.
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    const img = imageRef.current;
+    if (!canvas || !ctx || !img) return;
 
-      drawCanvas();
-      ctx.font = "52px 'Source Sans 3', sans-serif";
-      ctx.fillText(currentDate, 90, 990);
-      ctx.fillText(currentTime, 385, 990);
+    drawCanvas();
+    ctx.font = "52px 'Source Sans 3', sans-serif";
+    ctx.fillText(currentDate, 90, 990);
+    ctx.fillText(currentTime, 385, 990);
 
-      const ticketImage = canvas.toDataURL("image/jpeg", 0.95);
-      const qrImage = await QRCode.toDataURL(
-        getTicketPayload(currentDate, currentTime),
-        {
-          width: 320,
-          margin: 1,
-          color: {
-            dark: "#111111",
-            light: "#ffffff",
-          },
-        }
-      );
+    const ticketImage = canvas.toDataURL("image/jpeg", 0.95);
+    const qrImage = await QRCode.toDataURL(
+      getTicketPayload(currentDate, currentTime),
+      {
+        width: 320,
+        margin: 1,
+        color: {
+          dark: "#111111",
+          light: "#ffffff",
+        },
+      }
+    );
 
-      const html = buildClickableTicketHtml({
-        ticketImage,
-        qrImage,
-        date: currentDate,
-        time: currentTime,
-      });
+    const html = buildClickableTicketHtml({
+      ticketImage,
+      qrImage,
+      date: currentDate,
+      time: currentTime,
+    });
 
-      await saveClickableTicket(html, "clickable-ticket.html");
-    } finally {
-      setIsSaving(false);
-    }
+    await saveClickableTicket(html, "clickable-ticket.html");
   };
-
   return (
     <div className={styles.container}>
       <div className={styles.card}>
@@ -496,13 +500,8 @@ export default function TicketEditor() {
         </div>
 
         {/* Preview */}
-        <button
-          type="button"
-          className={styles.downloadBtn}
-          onClick={downloadImage}
-          disabled={isSaving}
-        >
-          {isSaving ? "Preparing..." : "Save Ticket"}
+        <button type="button" className={styles.downloadBtn} onClick={downloadImage}>
+          Download Clickable Ticket
         </button>
         <div
           className={styles.preview}
