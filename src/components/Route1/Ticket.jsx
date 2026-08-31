@@ -165,7 +165,7 @@ export default function TicketEditor() {
     .qr-trigger {
       position: absolute;
       left: 8%;
-      top: 72.7%;
+      top: 66.7%;
       width: 84%;
       height: 7.1%;
       border: 0;
@@ -233,19 +233,6 @@ export default function TicketEditor() {
 </html>`;
   };
   const saveClickableTicket = async (html, filename) => {
-    const file = new File([html], filename, { type: "text/html" });
-
-    if (navigator.canShare?.({ files: [file] })) {
-      try {
-        await navigator.share({
-          files: [file],
-        });
-        return;
-      } catch (error) {
-        if (error?.name === "AbortError") return;
-      }
-    }
-
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
