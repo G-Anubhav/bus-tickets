@@ -82,6 +82,7 @@ export default function TicketEditor() {
       margin: 0;
       width: 100%;
       height: 100%;
+      height: 100dvh;
       overflow: hidden;
       position: fixed;
       inset: 0;
@@ -95,6 +96,7 @@ export default function TicketEditor() {
       inset: 0;
       width: 100%;
       height: 100%;
+      height: 100dvh;
       display: flex;
       flex-direction: column;
       background: #1fb9b8;
@@ -149,8 +151,10 @@ export default function TicketEditor() {
     }
     .ticket {
       position: relative;
-      width: min(100vw, calc(100vh * 1080 / 2165));
-      height: min(100vh, calc(100vw * 2165 / 1080));
+      width: min(100vw, calc(100dvh * 1080 / 2165));
+      height: min(100dvh, calc(100vw * 2165 / 1080));
+      max-width: 100vw;
+      max-height: 100dvh;
     }
     .ticket img {
       display: block;
@@ -176,10 +180,12 @@ export default function TicketEditor() {
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 0 24px 120px;
+      padding: 0 24px calc(120px + env(safe-area-inset-bottom));
+      overflow: hidden;
     }
     .qr-card {
       width: min(86vw, 420px);
+      max-height: calc(100dvh - 220px);
       padding: 14px;
       border-radius: 3px;
       background: white;
@@ -189,6 +195,8 @@ export default function TicketEditor() {
       display: block;
       width: 100%;
       height: auto;
+      max-height: calc(100dvh - 248px);
+      object-fit: contain;
     }
   </style>
 </head>
@@ -216,6 +224,7 @@ export default function TicketEditor() {
   </section>
 
   <script>
+    window.scrollTo(0, 0);
     document.addEventListener("touchmove", function (event) {
       event.preventDefault();
     }, { passive: false });
@@ -231,11 +240,10 @@ export default function TicketEditor() {
         await navigator.share({
           files: [file],
           title: "Clickable Bus Ticket",
-          text: "Save or share your clickable bus ticket.",
         });
         return;
       } catch (error) {
-        return;
+        if (error?.name === "AbortError") return;
       }
     }
 
