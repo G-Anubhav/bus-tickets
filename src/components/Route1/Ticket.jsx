@@ -113,7 +113,7 @@ export default function TicketEditor() {
       line-height: 1;
       cursor: pointer;
     }
-    .issue {
+    .issue { 
       justify-self: center;
     }
     .all-tickets {
