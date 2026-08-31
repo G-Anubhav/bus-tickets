@@ -14,6 +14,7 @@ export default function TicketEditor() {
   const [endStop, setEndStop] = useState("");
   const [ticketColor, setTicketColor] = useState("blue"); // New state for color
   const [showPreview, setShowPreview] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const canvasRef = useRef(null);
   const imageRef = useRef(null);
   const ticketIdRef = useRef(
@@ -85,6 +86,7 @@ export default function TicketEditor() {
     }
     .screen {
       min-height: 100vh;
+      min-height: 100svh;
       display: flex;
       flex-direction: column;
       background: #1fb9b8;
@@ -144,6 +146,8 @@ export default function TicketEditor() {
       border: 0;
       background: transparent;
       cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
     .qr-wrap {
       flex: 1;
@@ -192,6 +196,8 @@ export default function TicketEditor() {
   <script>
     const ticketScreen = document.querySelector(".ticket-screen");
     const qrScreen = document.querySelector(".qr-screen");
+    document.querySelector(".back").innerHTML = "&times;";
+    document.querySelector(".issue").innerHTML = "&#9888;&#65039; Issue with ticket?";
     document.querySelector(".qr-trigger").addEventListener("click", () => {
       ticketScreen.hidden = true;
       qrScreen.hidden = false;
@@ -200,12 +206,38 @@ export default function TicketEditor() {
       qrScreen.hidden = true;
       ticketScreen.hidden = false;
     });
-    document.querySelector(".ticket-screen .close-icon").addEventListener("click", () => {
-      window.close();
-    });
   </script>
 </body>
 </html>`;
+  };
+
+  const saveClickableTicket = async (html, filename) => {
+    const file = new File([html], filename, { type: "text/html" });
+
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: "Clickable Bus Ticket",
+          text: "Save or share your clickable bus ticket.",
+        });
+        return;
+      } catch (error) {
+        if (error?.name === "AbortError") return;
+      }
+    }
+
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
   };
 
   // Load ticket image whenever color changes
@@ -278,55 +310,52 @@ export default function TicketEditor() {
   }, [busNumber, busRoute, startStop, endStop, numTickets, actualFare]);
 
   const downloadImage = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+
     const currentDate = getFormattedDate();
     const currentTime = getFormattedTime();
 
-    setBookingDate(currentDate);
-    setBookingTime(currentTime);
+    try {
+      setBookingDate(currentDate);
+      setBookingTime(currentTime);
 
-    // State updates are asynchronous, so draw once with the latest date/time
-    // before exporting the canvas.
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext("2d");
-    const img = imageRef.current;
-    if (!canvas || !ctx || !img) return;
+      // State updates are asynchronous, so draw once with the latest date/time
+      // before exporting the canvas.
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext("2d");
+      const img = imageRef.current;
+      if (!canvas || !ctx || !img) return;
 
-    drawCanvas();
-    ctx.font = "52px 'Source Sans 3', sans-serif";
-    ctx.fillText(currentDate, 90, 990);
-    ctx.fillText(currentTime, 385, 990);
+      drawCanvas();
+      ctx.font = "52px 'Source Sans 3', sans-serif";
+      ctx.fillText(currentDate, 90, 990);
+      ctx.fillText(currentTime, 385, 990);
 
-    const ticketImage = canvas.toDataURL("image/jpeg", 0.95);
-    const qrImage = await QRCode.toDataURL(
-      getTicketPayload(currentDate, currentTime),
-      {
-        width: 320,
-        margin: 1,
-        color: {
-          dark: "#111111",
-          light: "#ffffff",
-        },
-      }
-    );
+      const ticketImage = canvas.toDataURL("image/jpeg", 0.95);
+      const qrImage = await QRCode.toDataURL(
+        getTicketPayload(currentDate, currentTime),
+        {
+          width: 320,
+          margin: 1,
+          color: {
+            dark: "#111111",
+            light: "#ffffff",
+          },
+        }
+      );
 
-    const html = buildClickableTicketHtml({
-      ticketImage,
-      qrImage,
-      date: currentDate,
-      time: currentTime,
-    });
-    const blob = new Blob([html], { type: "text/html" });
-    const filename = "clickable-ticket.html";
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    link.style.display = "none";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+      const html = buildClickableTicketHtml({
+        ticketImage,
+        qrImage,
+        date: currentDate,
+        time: currentTime,
+      });
 
-    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      await saveClickableTicket(html, "clickable-ticket.html");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -467,8 +496,13 @@ export default function TicketEditor() {
         </div>
 
         {/* Preview */}
-        <button type="button" className={styles.downloadBtn} onClick={downloadImage}>
-          Download Clickable Ticket
+        <button
+          type="button"
+          className={styles.downloadBtn}
+          onClick={downloadImage}
+          disabled={isSaving}
+        >
+          {isSaving ? "Preparing..." : "Save Ticket"}
         </button>
         <div
           className={styles.preview}
