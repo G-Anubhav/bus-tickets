@@ -239,7 +239,6 @@ export default function TicketEditor() {
       try {
         await navigator.share({
           files: [file],
-          title: "Clickable Bus Ticket",
         });
         return;
       } catch (error) {
