@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import QRCode from "qrcode";
 import styles from "./Ticket.module.css";
 
 export default function TicketEditor() {
@@ -15,6 +16,10 @@ export default function TicketEditor() {
   const [showPreview, setShowPreview] = useState(true);
   const canvasRef = useRef(null);
   const imageRef = useRef(null);
+  const ticketIdRef = useRef(
+    `T${Date.now().toString(36)}${Math.random().toString(16).slice(2, 10)}`
+      .toUpperCase()
+  );
 
   const ticketImages = {
     blue: "/assets/images/sample-ticket-blue.jpg",
@@ -38,6 +43,169 @@ export default function TicketEditor() {
     const ampm = hours >= 12 ? "PM" : "AM";
     const formattedHours = hours % 12 === 0 ? 12 : hours % 12;
     return `${formattedHours}:${minutes} ${ampm}`;
+  };
+
+  const escapeHtml = (value) =>
+    String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+
+  const getTicketPayload = (date, time) =>
+    JSON.stringify({
+      id: ticketIdRef.current,
+      busNumber,
+      busRoute,
+      bookingDate: date,
+      bookingTime: time,
+      numTickets,
+      actualFare,
+      startStop,
+      endStop,
+    });
+
+  const buildClickableTicketHtml = ({ ticketImage, qrImage, date, time }) => {
+    const title = `Ticket ${ticketIdRef.current}`;
+
+    return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeHtml(title)}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #1fb9b8;
+      font-family: Arial, sans-serif;
+    }
+    .screen {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: #1fb9b8;
+    }
+    .screen[hidden] {
+      display: none;
+    }
+    .topbar {
+      height: 76px;
+      display: grid;
+      grid-template-columns: 44px 1fr auto;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+      color: #f0f0f0;
+      font-size: 17px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .close-icon {
+      border: 0;
+      background: transparent;
+      color: #f0f0f0;
+      font-size: 36px;
+      font-weight: 500;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .issue {
+      justify-self: center;
+    }
+    .all-tickets {
+      font-size: 17px;
+    }
+    .ticket-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px 0 42px;
+    }
+    .ticket {
+      position: relative;
+      width: min(100vw, 540px);
+    }
+    .ticket img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    .qr-trigger {
+      position: absolute;
+      left: 8%;
+      top: 72.7%;
+      width: 84%;
+      height: 7.1%;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+    .qr-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 24px 150px;
+    }
+    .qr-card {
+      width: min(86vw, 420px);
+      padding: 14px;
+      border-radius: 3px;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    }
+    .qr-card img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+  <section class="screen ticket-screen">
+    <div class="ticket-wrap">
+      <main class="ticket">
+        <img src="${ticketImage}" alt="Generated bus ticket" />
+        <button class="qr-trigger" type="button" aria-label="Show QR code"></button>
+      </main>
+    </div>
+  </section>
+
+  <section class="screen qr-screen" hidden>
+    <header class="topbar">
+      <button class="close-icon back" type="button" aria-label="Back">×</button>
+      <div class="issue">⚠️ Issue with ticket?</div>
+      <div class="all-tickets">View all tickets</div>
+    </header>
+    <main class="qr-wrap">
+      <div class="qr-card">
+        <img src="${qrImage}" alt="Ticket QR code" />
+      </div>
+    </main>
+  </section>
+
+  <script>
+    const ticketScreen = document.querySelector(".ticket-screen");
+    const qrScreen = document.querySelector(".qr-screen");
+    document.querySelector(".qr-trigger").addEventListener("click", () => {
+      ticketScreen.hidden = true;
+      qrScreen.hidden = false;
+    });
+    document.querySelector(".back").addEventListener("click", () => {
+      qrScreen.hidden = true;
+      ticketScreen.hidden = false;
+    });
+    document.querySelector(".ticket-screen .close-icon").addEventListener("click", () => {
+      window.close();
+    });
+  </script>
+</body>
+</html>`;
   };
 
   // Load ticket image whenever color changes
@@ -109,7 +277,7 @@ export default function TicketEditor() {
     drawCanvas();
   }, [busNumber, busRoute, startStop, endStop, numTickets, actualFare]);
 
-  const downloadImage = () => {
+  const downloadImage = async () => {
     const currentDate = getFormattedDate();
     const currentTime = getFormattedTime();
 
@@ -128,26 +296,37 @@ export default function TicketEditor() {
     ctx.fillText(currentDate, 90, 990);
     ctx.fillText(currentTime, 385, 990);
 
-    canvas.toBlob(
-      (blob) => {
-        if (!blob) return;
-
-        const filename = "updated-ticket.jpg";
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = filename;
-        link.style.display = "none";
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-
-        // Revoking immediately can cancel the download on mobile Safari.
-        window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      },
-      "image/jpeg",
-      0.95
+    const ticketImage = canvas.toDataURL("image/jpeg", 0.95);
+    const qrImage = await QRCode.toDataURL(
+      getTicketPayload(currentDate, currentTime),
+      {
+        width: 320,
+        margin: 1,
+        color: {
+          dark: "#111111",
+          light: "#ffffff",
+        },
+      }
     );
+
+    const html = buildClickableTicketHtml({
+      ticketImage,
+      qrImage,
+      date: currentDate,
+      time: currentTime,
+    });
+    const blob = new Blob([html], { type: "text/html" });
+    const filename = "clickable-ticket.html";
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
   };
 
   return (
@@ -289,7 +468,7 @@ export default function TicketEditor() {
 
         {/* Preview */}
         <button type="button" className={styles.downloadBtn} onClick={downloadImage}>
-          Download Ticket
+          Download Clickable Ticket
         </button>
         <div
           className={styles.preview}
