@@ -235,7 +235,7 @@ export default function TicketEditor() {
         });
         return;
       } catch (error) {
-        if (error?.name === "AbortError") return;
+        return;
       }
     }
 
