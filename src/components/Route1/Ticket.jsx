@@ -4,7 +4,8 @@ import QRCode from "qrcode";
 import styles from "./Ticket.module.css";
 
 export default function TicketEditor() {
-  const [busNumber, setBusNumber] = useState("");
+  const [busNumberPrefix, setBusNumberPrefix] = useState("");
+  const [busNumberDigits, setBusNumberDigits] = useState("");
   const [busRoute, setBusRoute] = useState("");
   const [bookingDate, setBookingDate] = useState("");
   const [bookingTime, setBookingTime] = useState("");
@@ -28,6 +29,16 @@ export default function TicketEditor() {
     purple: "/assets/images/sample-ticket-purple.png",
   };
 
+  const ticketBackgrounds = {
+    blue: "#1bbabe",
+    navy: "#0003fe",
+    orange: "#ff6319",
+    purple: "#8f00ff",
+  };
+
+  const busNumberPrefixes = ["DL51EV", "DL1PD", "DL51GD"];
+  const busNumber = `${busNumberPrefix}${busNumberDigits}`;
+
   const getFormattedDate = () => {
     const today = new Date();
     const day = today.getDate();
@@ -43,6 +54,15 @@ export default function TicketEditor() {
     const ampm = hours >= 12 ? "PM" : "AM";
     const formattedHours = hours % 12 === 0 ? 12 : hours % 12;
     return `${formattedHours}:${minutes} ${ampm}`;
+  };
+
+  const getTicketFilename = () => {
+    const now = new Date();
+    const day = now.getDate().toString().padStart(2, "0");
+    const month = (now.getMonth() + 1).toString().padStart(2, "0");
+    const hours = now.getHours().toString().padStart(2, "0");
+    const minutes = now.getMinutes().toString().padStart(2, "0");
+    return `${day}-${month}-${hours}-${minutes}.html`;
   };
 
   const escapeHtml = (value) =>
@@ -66,7 +86,13 @@ export default function TicketEditor() {
       endStop,
     });
 
-  const buildClickableTicketHtml = ({ ticketImage, qrImage, date, time }) => {
+  const buildClickableTicketHtml = ({
+    ticketImage,
+    qrImage,
+    date,
+    time,
+    backgroundColor,
+  }) => {
     const title = `Ticket ${ticketIdRef.current}`;
 
     return `<!doctype html>
@@ -82,11 +108,14 @@ export default function TicketEditor() {
       margin: 0;
       width: 100%;
       height: 100%;
+      height: -webkit-fill-available;
+      height: 100svh;
       height: 100dvh;
       overflow: hidden;
+      overflow: clip;
       position: fixed;
       inset: 0;
-      background: #1fb9b8;
+      background: ${backgroundColor};
       font-family: Arial, sans-serif;
       overscroll-behavior: none;
       touch-action: manipulation;
@@ -96,19 +125,29 @@ export default function TicketEditor() {
       inset: 0;
       width: 100%;
       height: 100%;
+      height: -webkit-fill-available;
+      height: 100svh;
       height: 100dvh;
       display: flex;
       flex-direction: column;
-      background: #1fb9b8;
+      background: ${backgroundColor};
       overflow: hidden;
+      overflow: clip;
+    }
+    .qr-toggle {
+      position: fixed;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
     }
     .qr-screen {
       display: none;
     }
-    .qr-screen:target {
+    .qr-toggle:checked ~ .qr-screen {
       display: flex;
     }
-    .qr-screen:target + .ticket-screen {
+    .qr-toggle:checked ~ .ticket-screen {
       display: none;
     }
     .topbar {
@@ -148,6 +187,8 @@ export default function TicketEditor() {
       align-items: center;
       justify-content: center;
       padding: 0;
+      overflow: hidden;
+      overflow: clip;
     }
     .ticket {
       position: relative;
@@ -155,6 +196,8 @@ export default function TicketEditor() {
       height: min(100dvh, calc(100vw * 2165 / 1080));
       max-width: 100vw;
       max-height: 100dvh;
+      overflow: hidden;
+      overflow: clip;
     }
     .ticket img {
       display: block;
@@ -201,9 +244,11 @@ export default function TicketEditor() {
   </style>
 </head>
 <body>
-  <section class="screen qr-screen" id="qr">
+  <input class="qr-toggle" id="qr-toggle" type="checkbox" />
+
+  <section class="screen qr-screen">
     <header class="topbar">
-      <a class="close-icon back" href="#ticket" aria-label="Back">&times;</a>
+      <label class="close-icon back" for="qr-toggle" aria-label="Back">&times;</label>
       <div class="issue">&#9888;&#65039; Issue with ticket?</div>
       <div class="all-tickets">View all tickets</div>
     </header>
@@ -214,11 +259,11 @@ export default function TicketEditor() {
     </main>
   </section>
 
-  <section class="screen ticket-screen" id="ticket">
+  <section class="screen ticket-screen">
     <div class="ticket-wrap">
       <main class="ticket">
         <img src="${ticketImage}" alt="Generated bus ticket" />
-        <a class="qr-trigger" href="#qr" aria-label="Show QR code"></a>
+        <label class="qr-trigger" for="qr-toggle" aria-label="Show QR code"></label>
       </main>
     </div>
   </section>
@@ -313,7 +358,15 @@ export default function TicketEditor() {
     setBookingDate(getFormattedDate());
     setBookingTime(getFormattedTime());
     drawCanvas();
-  }, [busNumber, busRoute, startStop, endStop, numTickets, actualFare]);
+  }, [
+    busNumberPrefix,
+    busNumberDigits,
+    busRoute,
+    startStop,
+    endStop,
+    numTickets,
+    actualFare,
+  ]);
 
   const downloadImage = async () => {
     const currentDate = getFormattedDate();
@@ -352,9 +405,10 @@ export default function TicketEditor() {
       qrImage,
       date: currentDate,
       time: currentTime,
+      backgroundColor: ticketBackgrounds[ticketColor],
     });
 
-    await saveClickableTicket(html, "clickable-ticket.html");
+    await saveClickableTicket(html, getTicketFilename());
   };
   return (
     <div className={styles.container}>
@@ -365,13 +419,37 @@ export default function TicketEditor() {
         <div className={styles.rowInputs}>
           <div className={styles.formGroup}>
             <label>Bus Number:</label>
-            <input
-              type="text"
-              value={busNumber}
-              placeholder="eg. DL51EV3198"
-              onChange={(e) => setBusNumber(e.target.value)}
-              required
-            />
+            <div className={styles.busNumberFields}>
+              <input
+                list="busNumberPrefixes"
+                value={busNumberPrefix}
+                placeholder="DL51EV"
+                onChange={(e) =>
+                  setBusNumberPrefix(
+                    e.target.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase()
+                  )
+                }
+              />
+              <datalist id="busNumberPrefixes">
+                {busNumberPrefixes.map((prefix) => (
+                  <option key={prefix} value={prefix}>
+                    {prefix}
+                  </option>
+                ))}
+              </datalist>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength="4"
+                value={busNumberDigits}
+                placeholder="3198"
+                onChange={(e) =>
+                  setBusNumberDigits(e.target.value.replace(/\D/g, "").slice(0, 4))
+                }
+                required
+              />
+            </div>
           </div>
 
           <div className={styles.formGroup}>
