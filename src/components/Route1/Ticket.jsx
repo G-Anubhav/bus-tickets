@@ -4,8 +4,7 @@ import QRCode from "qrcode";
 import styles from "./Ticket.module.css";
 
 export default function TicketEditor() {
-  const [busNumberPrefix, setBusNumberPrefix] = useState("");
-  const [busNumberDigits, setBusNumberDigits] = useState("");
+  const [busNumber, setBusNumber] = useState("");
   const [busRoute, setBusRoute] = useState("");
   const [bookingDate, setBookingDate] = useState("");
   const [bookingTime, setBookingTime] = useState("");
@@ -37,7 +36,22 @@ export default function TicketEditor() {
   };
 
   const busNumberPrefixes = ["DL51EV", "DL1PD", "DL51GD"];
-  const busNumber = `${busNumberPrefix}${busNumberDigits}`;
+
+  const formatBusNumberInput = (value) => {
+    const cleaned = value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+    const matchedPrefix = busNumberPrefixes.find((prefix) =>
+      cleaned.startsWith(prefix)
+    );
+
+    if (!matchedPrefix) return cleaned;
+
+    const suffix = cleaned
+      .slice(matchedPrefix.length)
+      .replace(/\D/g, "")
+      .slice(0, 4);
+
+    return `${matchedPrefix}${suffix}`;
+  };
 
   const getFormattedDate = () => {
     const today = new Date();
@@ -359,8 +373,7 @@ export default function TicketEditor() {
     setBookingTime(getFormattedTime());
     drawCanvas();
   }, [
-    busNumberPrefix,
-    busNumberDigits,
+    busNumber,
     busRoute,
     startStop,
     endStop,
@@ -419,37 +432,21 @@ export default function TicketEditor() {
         <div className={styles.rowInputs}>
           <div className={styles.formGroup}>
             <label>Bus Number:</label>
-            <div className={styles.busNumberFields}>
-              <input
-                list="busNumberPrefixes"
-                value={busNumberPrefix}
-                placeholder="DL51EV"
-                onChange={(e) =>
-                  setBusNumberPrefix(
-                    e.target.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase()
-                  )
-                }
-              />
-              <datalist id="busNumberPrefixes">
-                {busNumberPrefixes.map((prefix) => (
-                  <option key={prefix} value={prefix}>
-                    {prefix}
-                  </option>
-                ))}
-              </datalist>
-              <input
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength="4"
-                value={busNumberDigits}
-                placeholder="3198"
-                onChange={(e) =>
-                  setBusNumberDigits(e.target.value.replace(/\D/g, "").slice(0, 4))
-                }
-                required
-              />
-            </div>
+            <input
+              type="text"
+              list="busNumberPrefixes"
+              value={busNumber}
+              placeholder="eg. DL51EV3198"
+              onChange={(e) => setBusNumber(formatBusNumberInput(e.target.value))}
+              required
+            />
+            <datalist id="busNumberPrefixes">
+              {busNumberPrefixes.map((prefix) => (
+                <option key={prefix} value={prefix}>
+                  {prefix}
+                </option>
+              ))}
+            </datalist>
           </div>
 
           <div className={styles.formGroup}>
